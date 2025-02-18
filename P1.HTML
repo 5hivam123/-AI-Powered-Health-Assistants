@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Health Assistant</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f7ff;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .chat-container {
+            height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+        }
+
+        .user-message {
+            background-color: #007bff;
+            color: white;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background-color: #e9ecef;
+            color: black;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 15px 30px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .loading {
+            display: none;
+            color: #666;
+            font-style: italic;
+        }
+
+        .typing-indicator {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #e9ecef;
+            border-radius: 20px;
+        }
+
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin-right: 3px;
+            background-color: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        @keyframes typing {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Health Assistant</h1>
+        <div class="chat-container" id="chatContainer"></div>
+        <div class="loading" id="loading">
+            <div class="typing-indicator">
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+                <span class="typing-dot"></span>
+            </div>
+        </div>
+        <div class="input-container">
+            <input type="text" id="userInput" placeholder="Describe your symptoms...">
+            <button onclick="processInput()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const healthDatabase = {
+            "fever": {
+                possibleConditions: ["Common Cold", "Flu", "COVID-19"],
+                recommendations: [
+                    "Rest and stay hydrated",
+                    "Take acetaminophen or ibuprofen for fever",
+                    "Seek medical attention if temperature exceeds 103°F (39.4°C)"
+                ]
+            },
+            "headache": {
+                possibleConditions: ["Tension Headache", "Migraine", "Sinus Infection"],
+                recommendations: [
+                    "Rest in a quiet, dark room",
+                    "Apply a cool compress to forehead",
+                    "Consider over-the-counter pain relievers"
+                ]
+            },
+            "cough": {
+                possibleConditions: ["Common Cold", "Allergies", "Bronchitis"],
+                recommendations: [
+                    "Stay hydrated with warm liquids",
+                    "Use a humidifier",
+                    "Consider cough drops or honey (for adults)"
+                ]
+            }
+        };
+
+        function appendMessage(message, isUser = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+            messageDiv.textContent = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function analyzeSymptoms(input) {
+            const symptoms = input.toLowerCase().split(' ');
+            const results = {
+                possibleConditions: [],
+                recommendations: []
+            };
+
+            symptoms.forEach(symptom => {
+                if (healthDatabase[symptom]) {
+                    results.possibleConditions.push(...healthDatabase[symptom].possibleConditions);
+                    results.recommendations.push(...healthDatabase[symptom].recommendations);
+                }
+            });
+
+            return {
+                conditions: [...new Set(results.possibleConditions)],
+                advice: [...new Set(results.recommendations)]
+            };
+        }
+
+        function processInput() {
+            const userInput = document.getElementById('userInput');
+            const inputText = userInput.value.trim();
+            
+            if (!inputText) return;
+
+            appendMessage(inputText, true);
+            userInput.value = '';
+            showLoading(true);
+
+            setTimeout(() => {
+                const analysis = analyzeSymptoms(inputText);
+                showLoading(false);
+
+                let response = '⚠️ Remember: This is not medical advice. Always consult a professional.\n\n';
+                
+                if (analysis.conditions.length > 0) {
+                    response += `Possible conditions:\n- ${analysis.conditions.join('\n- ')}\n\n`;
+                    response += `Recommendations:\n- ${analysis.advice.join('\n- ')}`;
+                } else {
+                    response = "I'm not sure about these symptoms. Could you provide more details? For serious symptoms, please seek immediate medical attention.";
+                }
+
+                appendMessage(response);
+            }, 1500);
+        }
+
+        // Handle Enter key
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') processInput();
+        });
+    </script>
+</body>
+</html>
